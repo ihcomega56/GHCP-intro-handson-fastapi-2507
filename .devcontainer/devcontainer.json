@@ -1,0 +1,23 @@
+{
+	"name": "Python 3.12 - Chaos Kakeibo",
+	"build": {
+		"dockerfile": "../Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-python.debugpy",
+				"ms-python.pylint"
+			],
+			"settings": {
+				"python.linting.enabled": true,
+				"python.linting.pylintEnabled": true,
+				"python.testing.pytestEnabled": true
+			}
+		}
+	},
+	"forwardPorts": [8000],
+	"postCreateCommand": "pip install -r requirements.txt"
+}
