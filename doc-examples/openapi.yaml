@@ -1,0 +1,379 @@
+openapi: 3.0.0
+info:
+  title: Chaos Kakeibo API
+  description: 家計簿データを管理する API
+  version: 0.1.0
+
+paths:
+  /:
+    get:
+      summary: ルートアクセスのリダイレクト
+      description: ルートパスへのGETリクエストを/entriesへリダイレクトします
+      operationId: root_entries
+      responses:
+        '307':
+          description: /entriesへのリダイレクト
+          
+    post:
+      summary: エントリー一括作成
+      description: 複数の家計簿エントリーをまとめて作成します
+      operationId: root_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/EntryCreate'
+      responses:
+        '200':
+          description: エントリー作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntriesCreatedResponse'
+
+  /healthz:
+    get:
+      summary: ヘルスチェック
+      description: APIのヘルスステータスとデータ件数を返します
+      operationId: health_check
+      responses:
+        '200':
+          description: ヘルスチェック成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  data_count:
+                    type: integer
+                    description: 保存されているエントリー数
+                    example: 42
+
+  /entries:
+    post:
+      summary: エントリー作成
+      description: 複数の家計簿エントリーを作成します
+      operationId: create_entries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/EntryCreate'
+      responses:
+        '200':
+          description: エントリー作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntriesCreatedResponse'
+        '400':
+          description: リクエスト不正
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "date と amount は必須です"
+
+    get:
+      summary: エントリー検索
+      description: 日付範囲やカテゴリでエントリーをフィルタリングします
+      operationId: filter_entries
+      parameters:
+        - name: date_from
+          in: query
+          description: この日付以降のエントリーを取得（YYYY-MM-DD形式）
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          description: この日付以前のエントリーを取得（YYYY-MM-DD形式）
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: category
+          in: query
+          description: このカテゴリのエントリーのみを取得
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: フィルタリング成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntriesFilterResponse'
+
+  /entries/upload:
+    post:
+      summary: CSVアップロード
+      description: CSVファイルから複数のエントリーをアップロードします
+      operationId: create_entries_csv
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV形式のファイル
+      responses:
+        '200':
+          description: エントリー作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntriesCreatedResponse'
+
+  /summary/{year_month}:
+    get:
+      summary: 月次サマリー取得
+      description: 指定された年月の家計簿サマリーを取得します
+      operationId: get_summary
+      parameters:
+        - name: year_month
+          in: path
+          description: サマリーを取得する年月（YYYY-MM形式）
+          required: true
+          schema:
+            type: string
+            pattern: "^\\d{4}-\\d{2}$"
+      responses:
+        '200':
+          description: サマリー取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlySummaryResponse'
+        '400':
+          description: リクエスト不正
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "year_month は YYYY-MM 形式で入力してください"
+
+  /sample:
+    post:
+      summary: サンプルデータ追加
+      description: デモ用にサンプルデータを追加します
+      operationId: seed_sample
+      responses:
+        '200':
+          description: サンプルデータ追加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  added:
+                    type: integer
+                    description: 追加されたエントリー数
+                    example: 9
+                  total:
+                    type: integer
+                    description: 合計エントリー数
+                    example: 15
+
+  /clear_data:
+    post:
+      summary: 全データ削除
+      description: 全てのデータを削除します。この操作は取り消せません。
+      operationId: clear_data
+      tags:
+        - maintenance
+      parameters:
+        - name: confirm
+          in: query
+          description: この操作を確認するには、confirmパラメータをtrueに設定してください
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: データ削除成功または確認要求
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ['success', 'error']
+                  message:
+                    type: string
+                    example: "5件のデータを削除しました"
+                  cleared:
+                    type: integer
+                    description: 削除されたエントリー数
+                    example: 5
+
+components:
+  schemas:
+    EntryCreate:
+      type: object
+      required:
+        - date
+        - amount
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: エントリーのID（指定しない場合は自動生成）
+        date:
+          type: string
+          format: date
+          description: 日付（YYYY-MM-DD形式）
+          example: "2023-01-15"
+        category:
+          type: string
+          description: カテゴリ（指定しない場合は「未分類」）
+          default: "未分類"
+          example: "食費"
+        description:
+          type: string
+          description: 詳細説明（指定しない場合は空文字列）
+          default: ""
+          example: "スーパーマーケット"
+        amount:
+          type: string
+          description: 金額
+          example: "3500"
+
+    Entry:
+      type: object
+      required:
+        - id
+        - date
+        - amount
+        - category
+        - description
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: エントリーのID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        date:
+          type: string
+          format: date
+          description: 日付（YYYY-MM-DD形式）
+          example: "2023-01-15"
+        category:
+          type: string
+          description: カテゴリ
+          example: "食費"
+        description:
+          type: string
+          description: 詳細説明
+          example: "スーパーマーケット"
+        amount:
+          type: string
+          description: 金額
+          example: "3500"
+
+    EntriesCreatedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        created:
+          type: integer
+          description: 作成されたエントリー数
+          example: 3
+        entries:
+          type: array
+          description: 作成されたエントリーの詳細
+          items:
+            $ref: '#/components/schemas/Entry'
+
+    EntriesFilterResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 検索結果のエントリー数
+          example: 5
+        total_amount:
+          type: string
+          description: 合計金額
+          example: "15300"
+        categories:
+          type: object
+          description: カテゴリ別集計
+          additionalProperties:
+            type: number
+            format: float
+          example:
+            食費: 8500.0
+            交通費: 1200.0
+            日用品: 2600.0
+            交際費: 3000.0
+        entries:
+          type: array
+          description: エントリー一覧
+          items:
+            $ref: '#/components/schemas/Entry'
+
+    CategorySummary:
+      type: object
+      properties:
+        category:
+          type: string
+          description: カテゴリ名
+          example: "食費"
+        amount:
+          type: string
+          description: 合計金額
+          example: "8500"
+        percentage:
+          type: string
+          description: 全体に対する割合（%）
+          example: "55.56"
+
+    MonthlySummaryResponse:
+      type: object
+      properties:
+        year_month:
+          type: string
+          description: 年月（YYYY-MM形式）
+          example: "2023-01"
+        total_entries:
+          type: integer
+          description: エントリー数
+          example: 3
+        total_amount:
+          type: string
+          description: 合計金額
+          example: "9500"
+        categories:
+          type: array
+          description: カテゴリ別サマリー（金額降順）
+          items:
+            $ref: '#/components/schemas/CategorySummary'
