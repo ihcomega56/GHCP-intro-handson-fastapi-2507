@@ -90,7 +90,7 @@ async def list_categories():
 
 1. `main.py` を開きます。
 1. Copilot Chat でリファクタリングの準備をします。 :bulb: 余裕のある方は Copilot Edits を試すのもオススメです
-    - `filter_entries` のユニットテストを書き足します。 💬 `リファクタリングのため、 #sym:test_filter_entries を改善したいです。 #sym:filter_entries に実装されている分岐を網羅できるようなテストケースにしてください。`
+    - `filter_entries` のユニットテストを書き足します。 💬 `#sym:filter_entries のリファクタリングのため、 #sym:test_filter_entries を改善したいです。 この関数で実装されている分岐を網羅するにはどのようなユニットテストが必要ですか？` `ユニットテストを作成してください。また、 #file:doc-examples 内に作成したケースについてまとめたドキュメントを作成してください。`
     - `filter_entries` の現状をビジュアライズします。 💬 `この関数の処理を Mermaid 記法でフローチャートにしてください。`
 1. （※実行したい方のみ） テストを実行します。 `python -m pytest`
 1. インラインチャットを立ち上げます。 `Ctrl + i / Cmd + i`
